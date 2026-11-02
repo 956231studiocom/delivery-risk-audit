@@ -1,0 +1,9 @@
+# The Action runs on Linux runners. A CRLF in a shell script is not a style
+# issue, it is a broken script: bash reads the carriage return as part of the
+# interpreter path. Force LF everywhere.
+* text=auto eol=lf
+*.sh  text eol=lf
+*.py  text eol=lf
+*.yml text eol=lf
+*.yaml text eol=lf
+*.md  text eol=lf
