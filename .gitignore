@@ -1,0 +1,8 @@
+__pycache__/
+*.pyc
+.pytest_cache/
+audit-report.md
+audit-report.json
+/tmp/
+*.log
+.DS_Store

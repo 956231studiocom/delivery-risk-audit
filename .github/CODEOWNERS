@@ -1,0 +1,6 @@
+# Every path has an owner, so no change lands with nobody accountable.
+# Weights and check logic are the product; they do not change unattended.
+*                                   @956231studiocom
+/audit.py                           @956231studiocom
+/action.yml                         @956231studiocom
+/.github/                           @956231studiocom

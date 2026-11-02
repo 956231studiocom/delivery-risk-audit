@@ -1,0 +1,6 @@
+# Runtime has no dependencies. This file exists so the build is reproducible
+# and so the dev dependency below is pinned rather than assumed.
+#
+# Runtime: standard library only, Python 3.8+
+# Dev: pytest is optional; the suite also runs under unittest.
+pytest==8.3.3

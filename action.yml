@@ -1,0 +1,46 @@
+name: 'AI Delivery Risk Audit'
+description: 'Seven structural delivery-risk checks on your repository. Scores in seconds. Read-only: your code is never executed and never leaves the runner.'
+author: '956231studio'
+branding:
+  icon: 'shield'
+  color: 'blue'
+
+inputs:
+  path:
+    description: 'Directory to scan, relative to the workspace.'
+    required: false
+    default: '.'
+  name:
+    description: 'Label shown on the scorecard. Defaults to the folder name.'
+    required: false
+    default: ''
+  fail-under:
+    description: 'Fail the step when the score is below this number (0-100). Leave empty to always pass.'
+    required: false
+    default: ''
+  markdown:
+    description: 'Write the full Markdown report to the workspace.'
+    required: false
+    default: 'true'
+  report-path:
+    description: 'Where to write the Markdown report.'
+    required: false
+    default: 'audit-report.md'
+
+outputs:
+  score:
+    description: 'Total score, 0-100.'
+  grade:
+    description: 'Risk band: Low, Medium, High or Severe.'
+  report:
+    description: 'Path to the Markdown report.'
+  json:
+    description: 'Path to the raw JSON result.'
+
+runs:
+  using: 'composite'
+  steps:
+    - id: audit
+      shell: bash
+      run: |
+        python3 "${{ github.action_path }}/entrypoint.py"

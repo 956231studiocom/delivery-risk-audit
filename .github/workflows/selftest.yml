@@ -1,0 +1,47 @@
+name: self-test
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+jobs:
+  audit:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Run the audit on itself
+        id: audit
+        uses: ./
+        with:
+          path: '.'
+          fail-under: '0'
+
+      - name: Print what it found
+        run: |
+          echo "score=${{ steps.audit.outputs.score }}"
+          echo "grade=${{ steps.audit.outputs.grade }}"
+          test -f audit-report.md && head -30 audit-report.md
+
+      - name: Upload the report
+        uses: actions/upload-artifact@v4
+        with:
+          name: audit-report
+          path: |
+            audit-report.md
+            audit-report.json
+
+  cli-smoke:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Unit and end-to-end tests
+        run: |
+          python3 -m pip install --quiet pytest
+          python3 -m pytest tests e2e -q
+      - run: python3 audit.py . --md /tmp/r.md --json /tmp/r.json
+      - run: python3 -c "import json;d=json.load(open('/tmp/r.json'));assert len(d['checks'])==7;print('7 checks ok',d['total_score'])"
+      - name: Local gate
+        run: bash gate.sh
