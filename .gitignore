@@ -6,3 +6,6 @@ audit-report.json
 /tmp/
 *.log
 .DS_Store
+report.md
+audit-report.md
+audit-report.json
