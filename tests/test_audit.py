@@ -124,5 +124,71 @@ class TestRun(unittest.TestCase):
         self.assertIn("Priority stack", md)
 
 
+class TestCheckSpecifics(unittest.TestCase):
+    """c1, c5, c6 and c7 drive the published score, so each one gets a
+    fixture that moves it deliberately in both directions."""
+
+    def setUp(self):
+        self.root = tempfile.mkdtemp()
+
+    def tearDown(self):
+        shutil.rmtree(self.root)
+
+    def _write(self, rel, text):
+        path = os.path.join(self.root, rel)
+        d = os.path.dirname(path)
+        if d:
+            os.makedirs(d, exist_ok=True)
+        with open(path, "w", encoding="utf-8") as fh:
+            fh.write(text)
+
+    def _score(self, cid):
+        r = audit.run(self.root, "fixture")
+        return [c for c in r["checks"] if c["id"] == cid][0]
+
+    def test_c1_codeowners_raises_scope_containment(self):
+        self._write("app.py", "print(1)\n")
+        bare = self._score("C1")["score"]
+        self._write(".github/CODEOWNERS", "* @owner\n")
+        self._write(".github/workflows/ci.yml", "on: push\njobs: {}\n")
+        guarded = self._score("C1")["score"]
+        self.assertGreater(guarded, bare, "an owner file and CI must both count")
+        self.assertGreaterEqual(guarded, 5)
+
+    def test_c5_gate_script_and_changelog_raise_delivery_gate(self):
+        self._write("app.py", "print(1)\n")
+        bare = self._score("C5")["score"]
+        self.assertLessEqual(bare, 2, "no gate script and no release record")
+        self._write("gate.sh", "#!/bin/sh\nexit 0\n")
+        self._write("CHANGELOG.md", "## 1.0.0\n")
+        self._write("preflight.sh", "#!/bin/sh\nexit 0\n")
+        self._write(".github/workflows/ci.yml", "on: push\njobs: {}\n")
+        self.assertGreaterEqual(self._score("C5")["score"], 8)
+
+    def test_c6_flags_oversized_shipped_file(self):
+        self._write("app.py", "x = 1\n" * 10)
+        self.assertEqual(self._score("C6")["score"], 10, "a small repo is not complex")
+        self._write("engine.py", "def f():\n    return 1\n" * 1200)
+        c6 = self._score("C6")
+        self.assertLessEqual(c6["score"], 6, "a 1200-function module is oversized")
+        self.assertTrue(any("file" in e.lower() or "line" in e.lower() for e in c6["evidence"]))
+
+    def test_c7_lock_and_imports_raise_regression_surface(self):
+        self._write("app.py", "def f():\n    return 1\n")
+        self._write("tests/test_app.py", "import app\nassert app.f() == 1\n" * 4)
+        bare = self._score("C7")["score"]
+        self._write("requirements.txt", "requests==2.31.0\n")
+        locked = self._score("C7")["score"]
+        self.assertGreater(locked, bare, "a lock file must raise regression surface")
+
+    def test_oversized_file_never_exceeds_ten(self):
+        self._write("app.py", "print(1)\n")
+        self._write("huge.py", "y = 2\n" * 5000)
+        self._write("tests/test_huge.py", "assert 1 == 1\n" * 8)
+        for cid in ("C1", "C2", "C3", "C5", "C6", "C7"):
+            self.assertLessEqual(self._score(cid)["score"], 10)
+            self.assertGreaterEqual(self._score(cid)["score"], 0)
+
+
 if __name__ == "__main__":
     unittest.main()
